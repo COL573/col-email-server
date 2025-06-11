@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Dashboard - COL Ministries" />
+  <title>User Dashboard | COL Ministries</title>
+  <link rel="stylesheet" href="styles/tailwind.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+</head>
+<body class="bg-white dark:bg-gray-900 text-white min-h-screen flex flex-col">
+
+<!-- Header -->
+<header class="bg-gray-900 text-white shadow-md">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="index.html" class="text-xl font-bold">COL Ministries</a>
+    <nav class="space-x-4 hidden md:flex">
+      <a href="dashboard.html" class="hover:text-orange-400">Dashboard</a>
+      <a href="index.html" class="hover:text-orange-400">Public Site</a>
+      <a href="auth.html" class="hover:text-orange-400">Logout</a>
+    </nav>
+    <button class="md:hidden text-white focus:outline-none" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')">☰</button>
+  </div>
+  <div id="mobileMenu" class="md:hidden px-4 pb-4 hidden">
+    <a href="dashboard.html" class="block py-1">Dashboard</a>
+    <a href="index.html" class="block py-1">Public Site</a>
+    <a href="auth.html" class="block py-1">Logout</a>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="flex-grow p-6 max-w-4xl mx-auto">
+  <h1 class="text-3xl font-bold mb-4">Welcome to Your Dashboard</h1>
+  <p id="user-role" class="text-lg text-orange-300">Checking user role...</p>
+  <div id="dashboard-content" class="mt-6 hidden">
+    <p class="text-base">Here is your personalized content based on your role.</p>
+    <!-- Additional role-based content here -->
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="bg-gray-800 text-white text-center py-6 mt-12">
+  <p class="text-sm">&copy; 2025 COL International Ministries. All rights reserved.</p>
+  <div class="mt-2 space-x-4">
+    <a href="https://facebook.com" target="_blank" class="hover:text-orange-400">Facebook</a>
+    <a href="https://instagram.com" target="_blank" class="hover:text-orange-400">Instagram</a>
+    <a href="mailto:info@colministries.org" class="hover:text-orange-400">Contact</a>
+  </div>
+</footer>
+
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+  const supabase = createClient(
+    "https://vtzklavbxsmnaznuvuig.supabase.co",
+    "YOUR_PUBLIC_ANON_KEY"
+  );
+
+  const roleDisplay = document.getElementById("user-role");
+  const dashboardContent = document.getElementById("dashboard-content");
+
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("Auth error:", userError);
+      window.location.href = "auth.html";
+    } else {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Role fetch error:", profileError);
+        roleDisplay.textContent = "❌ Failed to fetch role. Please contact admin.";
+      } else if (!profile || !profile.role) {
+        roleDisplay.textContent = "⚠️ No role assigned. Please contact the administrator.";
+      } else {
+        roleDisplay.textContent = `✅ Logged in as: ${profile.role}`;
+        dashboardContent.classList.remove("hidden");
+      }
+    }
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    roleDisplay.textContent = "❌ Unexpected error occurred. See console.";
+  }
+</script>
+
+</body>
+</html>

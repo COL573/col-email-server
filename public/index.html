@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COL International Ministries</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Apple PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="COL Ministries" />
+  <link rel="apple-touch-icon" href="quiz-icon.png" />
+
+  <!-- Theme color -->
+  <meta name="theme-color" content="#000000"/>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Roboto&family=Open+Sans&family=Lora&family=Montserrat&display=swap" rel="stylesheet">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Poppins', sans-serif;
+      font-size: 16px;
+      transition: background 0.3s, color 0.3s, font-size 0.3s, font-family 0.3s;
+    }
+    body {
+      background: url('images/hero.jpg') no-repeat center center/cover;
+      position: relative;
+      color: white;
+    }
+    .light body {
+      background: url('images/hero-light.jpg') no-repeat center center/cover;
+      color: black;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      transition: background-color 0.3s;
+    }
+    .dark .overlay {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    .light .overlay {
+      background-color: rgba(255, 255, 255, 0.4);
+    }
+    .content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      top: 50%;
+      transform: translateY(-40%);
+    }
+    .dropdown-container {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 3;
+    }
+    .dot-menu {
+      font-size: 24px;
+      background: rgba(0, 0, 0, 0.5);
+      border: none;
+      color: white;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .dropdown {
+      display: none;
+      position: absolute;
+      top: 40px;
+      left: 0;
+      background: #1f2937;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+      color: white;
+    }
+    .dropdown a, .dropdown label, .dropdown select {
+      display: block;
+      padding: 0.5rem 0;
+      text-decoration: none;
+      color: white;
+    }
+    .dropdown a:hover {
+      background: #374151;
+    }
+    .right-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 3;
+    }
+    .top-center {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      text-align: center;
+    }
+    .section-link {
+      display: block;
+      margin: 20px auto;
+      font-size: 1.5rem;
+      text-decoration: none;
+      color: #fbbf24;
+      transition: font-size 0.3s;
+    }
+    .dashboard-link {
+      position: absolute;
+      top: 60px;
+      left: 10px;
+      z-index: 3;
+      background: #10b981;
+      padding: 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: white;
+      font-weight: bold;
+    }
+    .three-d {
+      position: absolute;
+      right: 0;
+      top: 20%;
+      height: 75%;
+      z-index: 2;
+    }
+    .footer {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      color: #ccc;
+      z-index: 2;
+    }
+    .footer a {
+      margin: 0 10px;
+      color: #ccc;
+      text-decoration: none;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    .font-adjuster {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 0;
+    }
+    .slider {
+      width: 120px;
+    }
+    .dropdown select {
+      width: 150px;
+      padding: 4px;
+      border-radius: 4px;
+    }
+  </style>
+
+  <!-- Firebase Setup -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8bIenZ1Y6h_vmD2nODZ2SMsZ-roc_mGA",
+      authDomain: "col-international-ministries.firebaseapp.com",
+      projectId: "col-international-ministries",
+      appId: "1:322590793116:web:04e0fb5b2563abd5537c59"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, user => {
+      document.getElementById('loginBtn').classList.toggle('hidden', !!user);
+      document.getElementById('logoutBtn').classList.toggle('hidden', !user);
+    });
+
+    window.logout = () => signOut(auth).then(() => location.reload());
+  </script>
+</head>
+<body>
+
+  <div class="overlay"></div>
+
+  <!-- Dropdown -->
+  <div class="dropdown-container">
+    <button class="dot-menu" onclick="toggleDropdown()">⋮</button>
+    <div id="dropdownMenu" class="dropdown">
+      <a href="tel:+1234567890">📞 Call Admin</a>
+      <a href="mailto:admin@colministries.org">📩 Report a Case</a>
+      <a href="#" onclick="toggleMode()">🌓 Toggle Dark/Light</a>
+
+      <div class="font-adjuster">
+        <label for="fontSlider">Font Size:</label>
+        <input type="range" min="12" max="40" value="16" id="fontSlider" class="slider" oninput="adjustFont(this.value)">
+
+        <label for="fontSelector">Font Style:</label>
+        <select id="fontSelector" onchange="changeFont(this.value)">
+          <option value="'Poppins', sans-serif">Poppins</option>
+          <option value="'Roboto', sans-serif">Roboto</option>
+          <option value="'Open Sans', sans-serif">Open Sans</option>
+          <option value="'Lora', serif">Lora</option>
+          <option value="'Montserrat', sans-serif">Montserrat</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <a class="dashboard-link" href="dashboard.html">📊 Dashboard</a>
+
+  <div class="top-center">
+    <h1 style="font-size: 2rem;">COL International Ministries</h1>
+    <p style="font-size: 0.9rem;">Where Light Expels Darkness</p>
+  </div>
+
+  <div class="right-controls">
+    <a href="auth.html" id="loginBtn" class="bg-yellow-500 px-4 py-2 rounded hidden">Login</a>
+    <button onclick="logout()" id="logoutBtn" class="bg-red-600 px-4 py-2 rounded hidden">Logout</button>
+  </div>
+
+  <div class="content">
+    <a href="devotions.html" class="section-link">📖 Devotions</a>
+    <a href="events.html" class="section-link">📅 Events</a>
+    <a href="donations.html" class="section-link">💝 Donations</a>
+    <a href="prayer.html" class="section-link">🙏 Prayer Requests</a>
+    <a href="game.html" class="section-link">🎮 Bible Quiz Game</a>
+  </div>
+
+  <img src="images/3d-cross.gif" alt="3D Object" class="three-d" />
+
+  <div class="footer">
+    <p>&copy; 2025 COL Ministries</p>
+    <a href="https://facebook.com" target="_blank">Facebook</a>
+    <a href="https://instagram.com" target="_blank">Instagram</a>
+    <a href="https://wa.me/1234567890" target="_blank">WhatsApp</a>
+    <a href="mailto:info@colministries.org">Contact</a>
+  </div>
+
+  <script>
+    function toggleDropdown() {
+      const menu = document.getElementById('dropdownMenu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function toggleMode() {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+      html.classList.toggle('light');
+    }
+
+    function adjustFont(size) {
+      document.documentElement.style.fontSize = `${size}px`;
+      document.body.style.fontSize = `${size}px`;
+
+      const links = document.querySelectorAll('.section-link');
+      links.forEach(link => {
+        link.style.fontSize = `${size * 0.1 + 1.1}rem`;
+      });
+    }
+
+    function changeFont(font) {
+      document.documentElement.style.fontFamily = font;
+      document.body.style.fontFamily = font;
+
+      const links = document.querySelectorAll('.section-link');
+      links.forEach(link => {
+        link.style.fontFamily = font;
+      });
+    }
+
+    // ✅ Register the Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log("Service Worker registered:", reg.scope))
+          .catch(err => console.error("Service Worker registration failed:", err));
+      });
+    }
+  </script>
+
+</body>
+</html>

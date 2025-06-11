@@ -1,0 +1,101 @@
+<!-- TEMPLATE: Base Layout with Navbar + Footer + Admin Check -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Children of Light (COL) International Ministries - Where light expels darkness" />
+  <meta property="og:title" content="COL International Ministries" />
+  <meta property="og:description" content="Bringing the Gospel to the Nations" />
+  <meta property="og:image" content="/images/social-preview.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <title>COL International Ministries</title>
+  <link rel="stylesheet" href="styles/tailwind.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body class="bg-white dark:bg-gray-900 text-white h-full">
+
+  <!-- ✅ Shared Navbar -->
+  <header class="bg-gray-900 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <a href="index.html" class="text-xl font-bold">COL Ministries</a>
+      <nav class="space-x-4 hidden md:flex">
+        <a href="index.html" class="hover:text-orange-400">Home</a>
+        <a href="devotions.html" class="hover:text-orange-400">Devotions</a>
+        <a href="events.html" class="hover:text-orange-400">Events</a>
+        <a href="donate.html" class="hover:text-orange-400">Donate</a>
+        <a href="auth.html" class="hover:text-orange-400">Login</a>
+      </nav>
+      <button class="md:hidden text-white focus:outline-none" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')">
+        ☰
+      </button>
+    </div>
+    <div id="mobileMenu" class="md:hidden px-4 pb-4 hidden">
+      <a href="index.html" class="block py-1">Home</a>
+      <a href="devotions.html" class="block py-1">Devotions</a>
+      <a href="events.html" class="block py-1">Events</a>
+      <a href="donate.html" class="block py-1">Donate</a>
+      <a href="auth.html" class="block py-1">Login</a>
+    </div>
+  </header>
+
+  <!-- ✅ Page-Specific Content Below -->
+  <main class="p-4">
+    <!-- REPLACE THIS BLOCK with the unique content of each page -->
+    <h1 class="text-3xl font-bold mb-4">Page Title</h1>
+    <p>Welcome to the page. Customize this section with your page content.</p>
+  </main>
+
+  <!-- ✅ Shared Footer -->
+  <footer class="bg-gray-800 text-white text-center py-6 mt-12">
+    <p class="text-sm">&copy; 2025 COL International Ministries. All rights reserved.</p>
+    <div class="mt-2 space-x-4">
+      <a href="https://facebook.com" class="hover:text-orange-400">Facebook</a>
+      <a href="https://instagram.com" class="hover:text-orange-400">Instagram</a>
+      <a href="mailto:info@colministries.org" class="hover:text-orange-400">Contact</a>
+    </div>
+  </footer>
+
+  <!-- ✅ Optional Admin Auth Check (Add only to admin pages) -->
+  <!-- Remove this script on public pages -->
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+    apiKey: "AIzaSyB8bIenZ1Y6h_vmD2nODZ2SMsZ-roc_mGA", // Replace this
+    authDomain: "col-international-ministries.firebaseapp.com",
+    projectId: "col-international-ministries",
+    appId: "1:322590793116:web:04e0fb5b2563abd5537c59" // Replace this
+  };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (!userDoc.exists() || !userDoc.data().admin) {
+          alert("Admin access only.");
+          window.location.href = "/auth.html";
+        }
+      } else {
+        window.location.href = "/auth.html";
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Devotions | COL Ministries</title>
+  <link rel="stylesheet" href="styles/tailwind.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+</head>
+<body class="bg-white dark:bg-gray-900 text-white">
+
+<!-- Navbar -->
+<header class="bg-gray-900 text-white shadow-md">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="index.html" class="text-xl font-bold">COL Ministries</a>
+    <nav class="space-x-4 hidden md:flex">
+      <a href="index.html" class="hover:text-orange-400">Home</a>
+      <a href="devotions.html" class="hover:text-orange-400">Devotions</a>
+      <a href="events.html" class="hover:text-orange-400">Events</a>
+      <a href="donate.html" class="hover:text-orange-400">Donate</a>
+      <a href="auth.html" class="hover:text-orange-400">Login</a>
+    </nav>
+    <button class="md:hidden text-white focus:outline-none" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')">
+      ☰
+    </button>
+  </div>
+  <div id="mobileMenu" class="md:hidden px-4 pb-4 hidden">
+    <a href="index.html" class="block py-1">Home</a>
+    <a href="devotions.html" class="block py-1">Devotions</a>
+    <a href="events.html" class="block py-1">Events</a>
+    <a href="donate.html" class="block py-1">Donate</a>
+    <a href="auth.html" class="block py-1">Login</a>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="max-w-4xl mx-auto py-10 px-4">
+  <h1 class="text-3xl font-bold mb-6">Daily Devotions</h1>
+  <div id="devotion-list" class="space-y-6"></div>
+</main>
+
+<!-- Footer -->
+<footer class="bg-gray-800 text-white text-center py-6 mt-12">
+  <p class="text-sm">&copy; 2025 COL International Ministries. All rights reserved.</p>
+  <div class="mt-2 space-x-4">
+    <a href="https://facebook.com" class="hover:text-orange-400">Facebook</a>
+    <a href="https://instagram.com" class="hover:text-orange-400">Instagram</a>
+    <a href="mailto:info@colministries.org" class="hover:text-orange-400">Contact</a>
+  </div>
+</footer>
+
+<!-- Firebase SDK and Script -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+  import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8bIenZ1Y6h_vmD2nODZ2SMsZ-roc_mGA", // Replace this
+    authDomain: "col-international-ministries.firebaseapp.com",
+    projectId: "col-international-ministries",
+    appId: "1:322590793116:web:04e0fb5b2563abd5537c59" // Replace this
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function loadDevotions() {
+    const devotionList = document.getElementById("devotion-list");
+    const q = query(collection(db, "devotions"), orderBy("timestamp", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    querySnapshot.forEach(doc => {
+      const data = doc.data();
+      const card = document.createElement("div");
+      card.className = "bg-gray-800 p-6 rounded-lg shadow";
+      card.innerHTML = `
+        <h2 class="text-xl font-bold mb-2">${data.title}</h2>
+        <p class="text-sm text-gray-400 mb-2">By ${data.author || 'Anonymous'}</p>
+        <p class="text-base leading-relaxed">${data.content}</p>
+      `;
+      devotionList.appendChild(card);
+    });
+  }
+
+  loadDevotions();
+</script>
+
+</body>
+</html>

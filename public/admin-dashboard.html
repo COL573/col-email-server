@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Admin Dashboard - COL Ministries" />
+  <title>Admin Dashboard | COL Ministries</title>
+  <link rel="stylesheet" href="styles/tailwind.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-white">
+
+<!-- 🔔 Notification -->
+<div id="notification-bar" class="bg-yellow-400 text-black text-center py-2 font-semibold">
+  You have new testimonies or prayer requests!
+</div>
+
+<header class="bg-gray-900 text-white shadow-md">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="index.html" class="text-xl font-bold">COL Ministries</a>
+    <nav class="space-x-4 hidden md:flex">
+      <a href="admin-dashboard.html" class="hover:text-orange-400">Admin Home</a>
+      <a href="index.html" class="hover:text-orange-400">Public Site</a>
+      <a href="auth.html" class="hover:text-orange-400">Logout</a>
+    </nav>
+    <button class="md:hidden text-white" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')">☰</button>
+  </div>
+  <div id="mobileMenu" class="md:hidden px-4 pb-4 hidden">
+    <a href="admin-dashboard.html" class="block py-1">Admin Home</a>
+    <a href="index.html" class="block py-1">Public Site</a>
+    <a href="auth.html" class="block py-1">Logout</a>
+  </div>
+</header>
+
+<!-- ❌ Access Denied -->
+<div id="accessDenied" class="hidden text-center p-6 text-red-600 font-semibold">
+  ❌ Access denied. You must be an admin to view this page.
+</div>
+
+<main id="adminMain" class="max-w-6xl mx-auto p-6 hidden space-y-12">
+
+  <h1 class="text-3xl font-bold mb-4">Admin Dashboard</h1>
+  <ul class="space-y-2 text-orange-400">
+    <li><a href="dashboard.html" class="hover:underline">📈 General Dashboard</a></li>
+    <li><a href="dashboard-testimonies.html" class="hover:underline">💬 Manage Testimonies</a></li>
+    <li><a href="admin.html" class="hover:underline">🛠 Admin Controls</a></li>
+  </ul>
+
+  <!-- 📊 Prayer Stats -->
+  <section>
+    <h2 class="text-2xl font-bold text-orange-500 mb-4">Prayer Request Stats</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
+      <div class="bg-green-600 p-6 rounded text-center">
+        <p class="text-4xl font-bold" id="totalRequests">0</p>
+        <p>Total Requests</p>
+      </div>
+      <div class="bg-blue-600 p-6 rounded text-center">
+        <p class="text-4xl font-bold" id="answeredRequests">0</p>
+        <p>Answered</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 🙏 Prayer Management -->
+  <section>
+    <h2 class="text-2xl font-bold text-orange-500 mb-4">Manage Prayer Requests</h2>
+    <ul id="prayerList" class="space-y-4"></ul>
+  </section>
+
+  <!-- 🧑 Role Assignment -->
+  <section>
+    <h2 class="text-2xl font-bold text-orange-500 mb-4">Assign Roles</h2>
+    <div class="flex flex-wrap gap-2">
+      <input type="email" id="roleEmail" placeholder="User Email" class="p-2 border rounded w-full sm:w-1/2 text-black" />
+      <select id="roleType" class="p-2 border rounded w-full sm:w-1/4 text-black">
+        <option value="admin">Admin</option>
+        <option value="viewer">Viewer</option>
+      </select>
+      <button onclick="assignRole()" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
+        Assign
+      </button>
+    </div>
+    <p id="roleMsg" class="mt-2 text-green-400 text-sm"></p>
+  </section>
+
+  <!-- 💰 Recent Donations -->
+  <section>
+    <h2 class="text-2xl font-bold text-orange-500 mb-4">Recent Donations</h2>
+    <ul id="donationList" class="space-y-3"></ul>
+  </section>
+
+  <!-- 🎥 Admin Meeting Link -->
+  <section id="admin-meet" class="hidden text-center">
+    <h2 class="text-2xl font-bold mb-4">Private Admin Meeting</h2>
+    <a id="admin-meet-link" href="#" target="_blank"
+       class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded text-lg">
+      Join Admin Meet
+    </a>
+  </section>
+
+  <!-- ✉️ Invite Admin -->
+  <section id="admin-invite-section" class="hidden max-w-md mx-auto">
+    <h2 class="text-2xl font-bold mb-4">Invite New Admin</h2>
+    <form id="admin-invite-form" class="space-y-4">
+      <input type="email" id="invite-email" class="w-full px-4 py-2 rounded text-black" placeholder="User email" required />
+      <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded w-full">
+        Send Admin Invite
+      </button>
+    </form>
+    <p id="invite-msg" class="mt-4 text-green-400 hidden">✅ Invite sent successfully!</p>
+  </section>
+</main>
+
+<footer class="bg-gray-800 text-white text-center py-6 mt-12">
+  <p class="text-sm">&copy; 2025 COL International Ministries. All rights reserved.</p>
+  <div class="mt-2 space-x-4">
+    <a href="https://facebook.com" class="hover:text-orange-400">Facebook</a>
+    <a href="https://instagram.com" class="hover:text-orange-400">Instagram</a>
+    <a href="mailto:info@colministries.org" class="hover:text-orange-400">Contact</a>
+  </div>
+</footer>
+
+<script>
+  // Firebase Setup
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8bIenZ1Y6h_vmD2nODZ2SMsZ-roc_mGA",
+    authDomain: "col-international-ministries.firebaseapp.com",
+    projectId: "col-international-ministries",
+    appId: "1:322590793116:web:04e0fb5b2563abd5537c59"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  // Supabase Setup
+  const supabase = supabase.createClient(
+    "https://vtzklavbxsmnaznuvuig.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  );
+
+  let currentUser = null;
+
+  async function checkAccess() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return (window.location.href = "auth.html");
+
+    currentUser = user;
+
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (error || profile?.role !== "admin") {
+      document.getElementById("accessDenied").classList.remove("hidden");
+    } else {
+      document.getElementById("adminMain").classList.remove("hidden");
+      loadPrayerStats();
+      loadPrayerRequests();
+      loadDonations();
+    }
+  }
+
+  async function loadPrayerStats() {
+    const { count: total } = await supabase
+      .from('prayer_requests')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: answered } = await supabase
+      .from('prayer_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('answered', true);
+
+    document.getElementById('totalRequests').textContent = total;
+    document.getElementById('answeredRequests').textContent = answered;
+  }
+
+  async function loadPrayerRequests() {
+    const { data } = await supabase
+      .from('prayer_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const list = document.getElementById('prayerList');
+    list.innerHTML = data.map(req => `
+      <li class="bg-gray-100 dark:bg-gray-800 p-4 rounded shadow">
+        <p><strong>${req.request}</strong></p>
+        <p class="text-sm text-gray-400">Status: ${req.answered ? '✅ Answered' : '⏳ Pending'}</p>
+        <button onclick="markAnswered('${req.id}')" class="mt-2 px-3 py-1 bg-green-600 text-white rounded">Mark as Answered</button>
+      </li>
+    `).join('');
+  }
+
+  async function markAnswered(id) {
+    await supabase.from('prayer_requests').update({ answered: true }).eq('id', id);
+    loadPrayerRequests();
+    loadPrayerStats();
+  }
+
+  async function assignRole() {
+    const email = document.getElementById('roleEmail').value.trim();
+    const role = document.getElementById('roleType').value;
+    const { data: user } = await supabase.from('profiles').select('*').eq('email', email).single();
+
+    if (user) {
+      await supabase.from('profiles').update({ role }).eq('id', user.id);
+      document.getElementById('roleMsg').textContent = `✅ Role updated to ${role}`;
+    } else {
+      document.getElementById('roleMsg').textContent = `❌ Email not found in profiles`;
+    }
+  }
+
+  async function loadDonations() {
+    const { data } = await supabase
+      .from('donations')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    const list = document.getElementById('donationList');
+    list.innerHTML = data.map(d => `
+      <li class="bg-gray-100 dark:bg-gray-800 p-4 rounded shadow">
+        <p><strong>${d.amount}</strong> KES via ${d.method}</p>
+        <p class="text-sm text-gray-400">On ${new Date(d.created_at).toLocaleDateString()}</p>
+        <p>Status: ${d.status}</p>
+      </li>
+    `).join('');
+  }
+
+  // Admin Invite Handler
+  document.getElementById("admin-invite-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("invite-email").value.trim();
+    if (!email) return;
+    try {
+      await firebase.firestore().collection("adminInvites").doc(email).set({ invited: true });
+      document.getElementById("invite-msg").classList.remove("hidden");
+      document.getElementById("admin-invite-form").reset();
+    } catch (error) {
+      alert("Error sending invite: " + error.message);
+    }
+  });
+
+  checkAccess();
+</script>
+
+</body>
+</html>

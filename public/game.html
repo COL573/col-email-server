@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bible Quiz Game</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: #f4f4f4;
+      color: #333;
+      font-size: 1em;
+    }
+    .dark {
+      background: #111;
+      color: #eee;
+    }
+    .container {
+      padding: 1rem;
+      max-width: 600px;
+      margin: auto;
+      text-align: center;
+    }
+    .question {
+      font-size: 1.5em;
+      margin: 1em 0;
+    }
+    .options button {
+      display: block;
+      margin: 0.5em auto;
+      width: 100%;
+      padding: 0.5em;
+      font-size: 1em;
+    }
+    .progress-bar {
+      height: 10px;
+      background: lightgray;
+      margin: 1em 0;
+    }
+    .progress {
+      height: 10px;
+      background: green;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .sound-panel {
+      display: none;
+      margin-top: 1em;
+      border: 1px solid #ccc;
+      padding: 1em;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .dark .sound-panel {
+      background: #222;
+      border-color: #444;
+    }
+    .toggle-btns button {
+      margin: 0 0.25em;
+      font-size: 1.2em;
+    }
+    .leaderboard h3 {
+      cursor: pointer;
+      color: #007bff;
+      text-decoration: underline;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 0.5rem; }
+      .options button { font-size: 1em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bible Quiz Game</h1>
+    <div class="toggle-btns">
+      <button onclick="toggleTheme()">🌗</button>
+      <button onclick="adjustFontSize('+')">A+</button>
+      <button onclick="adjustFontSize('-')">A-</button>
+      <button onclick="toggleSoundPanel()">🎵</button>
+      <div class="sound-panel" id="soundPanel">
+        <!-- Sound Options -->
+        <label>Correct Sound:
+          <select id="correctSoundSelect" onchange="setCorrectSound()">
+            <option value="sounds-correct1.mp3">Correct 1</option>
+            <option value="sounds-correct2.mp3">Correct 2</option>
+            <option value="sounds-correct3.mp3">Correct 3</option>
+          </select>
+          <button onclick="testSound('correct')">Test ✅</button>
+        </label><br><br>
+        <label>Wrong Sound:
+          <select id="wrongSoundSelect" onchange="setWrongSound()">
+            <option value="sounds-wrong1.mp3">Wrong 1</option>
+            <option value="sounds-wrong2.mp3">Wrong 2</option>
+            <option value="sounds-wrong3.mp3">Wrong 3</option>
+          </select>
+          <button onclick="testSound('wrong')">Test ❌</button>
+        </label><br><br>
+        <label>Background Music:
+          <select id="bgMusicSelect" onchange="setBgMusic()">
+            <option value="sounds-music1.mp3">Music 1</option>
+            <option value="sounds-music2.mp3">Music 2</option>
+          </select>
+          <button onclick="testSound('music')">Test 🎵</button>
+        </label><br><br>
+        <label>Volume:
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" onchange="setVolume()" />
+        </label><br><br>
+        <button onclick="toggleMusic()">Play/Pause Music</button>
+      </div>
+      <button onclick="toggleMode()">🎮 <span id="modeLabel">Solo</span></button>
+    </div>
+
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="progress-bar"><div class="progress" id="progress"></div></div>
+    <div>
+      <button onclick="nextQuestion()">Next</button>
+      <p>Score: <span id="score">0</span></p>
+    </div>
+
+    <div class="leaderboard" id="leaderboard">
+      <h3 onclick="location.href='dashboard.html'">Leaderboard</h3>
+      <ul id="leaderboardList"></ul>
+    </div>
+  </div>
+
+  <audio id="bgMusic" src="sounds-music1.mp3" loop></audio>
+  <audio id="correctSound" src="sounds-correct1.mp3"></audio>
+  <audio id="wrongSound" src="sounds-wrong1.mp3"></audio>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="questions.js"></script>
+  <script src="questions_hard.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID",
+      databaseURL: "https://YOUR_PROJECT.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentLevel = 0, currentQuestionIndex = 0, score = 0, soloMode = true;
+    let currentQuestions = [];
+    let fontSize = 1;
+
+    function renderQuestion() {
+      const q = currentQuestions[currentQuestionIndex];
+      document.getElementById("question").textContent = q.q;
+      document.getElementById("options").innerHTML = q.options.map((opt, i) =>
+        `<button onclick="selectAnswer(${i})">${opt}</button>`).join('');
+      document.getElementById("progress").style.width =
+        `${((currentQuestionIndex + 1) / currentQuestions.length) * 100}%`;
+    }
+
+    function selectAnswer(index) {
+      const correct = currentQuestions[currentQuestionIndex].answer;
+      if (index === correct) {
+        score++;
+        document.getElementById("correctSound").play().catch(console.warn);
+      } else {
+        document.getElementById("wrongSound").play().catch(console.warn);
+      }
+      document.getElementById("score").textContent = score;
+    }
+
+    function nextQuestion() {
+      currentQuestionIndex++;
+      if (currentQuestionIndex >= currentQuestions.length) {
+        alert(soloMode ? "Level complete!" : "Multiplayer round complete!");
+        currentLevel++;
+        currentQuestionIndex = 0;
+        loadQuestions();
+      } else {
+        renderQuestion();
+      }
+    }
+
+    function loadQuestions() {
+      if (soloMode) {
+        const level = questions[currentLevel % questions.length];
+        currentQuestions = level.questions;
+      } else {
+        const level = questions_hard[currentLevel % questions_hard.length];
+        currentQuestions = level.questions;
+      }
+      renderQuestion();
+    }
+
+    function toggleMode() {
+      soloMode = !soloMode;
+      document.getElementById("modeLabel").textContent = soloMode ? "Solo" : "Multiplayer";
+      currentLevel = 0;
+      currentQuestionIndex = 0;
+      score = 0;
+      document.getElementById("score").textContent = score;
+      loadQuestions();
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("dark");
+    }
+
+    function adjustFontSize(dir) {
+      fontSize += dir === '+' ? 0.1 : -0.1;
+      document.body.style.fontSize = `${fontSize}em`;
+    }
+
+    function toggleSoundPanel() {
+      const panel = document.getElementById("soundPanel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+    }
+
+    function setCorrectSound() {
+      const file = document.getElementById("correctSoundSelect").value;
+      document.getElementById("correctSound").src = file;
+      localStorage.setItem("correctSound", file);
+    }
+
+    function setWrongSound() {
+      const file = document.getElementById("wrongSoundSelect").value;
+      document.getElementById("wrongSound").src = file;
+      localStorage.setItem("wrongSound", file);
+    }
+
+    function setBgMusic() {
+      const file = document.getElementById("bgMusicSelect").value;
+      const audio = document.getElementById("bgMusic");
+      const wasPlaying = !audio.paused;
+      audio.src = file;
+      localStorage.setItem("bgMusic", file);
+      if (wasPlaying) audio.play().catch(console.warn);
+    }
+
+    function setVolume() {
+      const vol = parseFloat(document.getElementById("volumeSlider").value);
+      ["correctSound", "wrongSound", "bgMusic"].forEach(id => {
+        const el = document.getElementById(id);
+        el.volume = vol;
+      });
+      localStorage.setItem("volume", vol);
+    }
+
+    function toggleMusic() {
+      const bg = document.getElementById("bgMusic");
+      if (bg.paused) bg.play().catch(console.warn);
+      else bg.pause();
+    }
+
+    function testSound(type) {
+      const el = document.getElementById(
+        type === 'correct' ? "correctSound" :
+        type === 'wrong' ? "wrongSound" : "bgMusic"
+      );
+      el.currentTime = 0;
+      el.play().catch(console.warn);
+    }
+
+    function restoreSoundSettings() {
+      const cs = localStorage.getItem("correctSound");
+      const ws = localStorage.getItem("wrongSound");
+      const ms = localStorage.getItem("bgMusic");
+      const vol = localStorage.getItem("volume");
+
+      if (cs) {
+        document.getElementById("correctSoundSelect").value = cs;
+        document.getElementById("correctSound").src = cs;
+      }
+      if (ws) {
+        document.getElementById("wrongSoundSelect").value = ws;
+        document.getElementById("wrongSound").src = ws;
+      }
+      if (ms) {
+        document.getElementById("bgMusicSelect").value = ms;
+        document.getElementById("bgMusic").src = ms;
+      }
+      if (vol) {
+        document.getElementById("volumeSlider").value = vol;
+        setVolume();
+      }
+    }
+
+    function loadLeaderboard() {
+      db.ref("leaderboard").orderByChild("score").limitToLast(10).once("value", snap => {
+        const ul = document.getElementById("leaderboardList");
+        ul.innerHTML = "";
+        let entries = [];
+        snap.forEach(child => entries.push(child.val()));
+        entries.reverse().forEach(entry => {
+          const li = document.createElement("li");
+          li.textContent = `${entry.email}: ${entry.score}`;
+          ul.appendChild(li);
+        });
+      });
+    }
+
+    window.addEventListener("load", () => {
+      restoreSoundSettings();
+      loadQuestions();
+      loadLeaderboard();
+
+      const allowAutoplay = () => {
+        document.getElementById("bgMusic").play().catch(console.warn);
+        document.removeEventListener("click", allowAutoplay);
+        document.removeEventListener("touchstart", allowAutoplay);
+      };
+      document.addEventListener("click", allowAutoplay);
+      document.addEventListener("touchstart", allowAutoplay);
+
+      navigator.serviceWorker?.register("service-worker.js");
+    });
+  </script>
+</body>
+</html>

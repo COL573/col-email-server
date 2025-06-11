@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Login or Register | COL Ministries</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="styles/tailwind.css" rel="stylesheet" />
+  <link rel="icon" href="favicon.ico" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-white">
+
+<header class="bg-orange-500 text-white p-6 text-center">
+  <h1 class="text-3xl font-bold">Welcome to COL Ministries</h1>
+  <p class="text-lg">Login or create your account</p>
+</header>
+
+<main class="max-w-md mx-auto p-6 space-y-6">
+  <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded shadow space-y-4">
+    <input id="email" type="email" placeholder="Email" class="w-full p-2 border rounded" />
+    <input id="password" type="password" placeholder="Password" class="w-full p-2 border rounded" />
+
+    <div class="flex justify-between space-x-4">
+      <button id="registerBtn" class="w-1/2 bg-green-600 text-white py-2 rounded hover:bg-green-700">Register</button>
+      <button id="loginBtn" class="w-1/2 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+    </div>
+
+    <button id="googleBtn" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 mt-2">Sign in with Google</button>
+
+    <p id="authMessage" class="text-sm text-green-600 mt-2"></p>
+  </div>
+</main>
+
+<footer class="text-center p-4 bg-gray-100 dark:bg-gray-800">
+  <p>© 2025 COL International Ministries</p>
+</footer>
+
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8bIenZ1Y6h_vmD2nODZ2SMsZ-roc_mGA",
+    authDomain: "col-international-ministries.firebaseapp.com",
+    projectId: "col-international-ministries",
+    appId: "1:322590793116:web:04e0fb5b2563abd5537c59"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  // Supabase config
+  const supabase = createClient(
+    "https://vtzklavbxsmnaznuvuig.supabase.co",
+    "YOUR_PUBLIC_ANON_KEY"
+  );
+
+  const authMessage = document.getElementById('authMessage');
+
+  async function ensureUserProfile(user) {
+    let { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.uid)
+      .single();
+
+    if (!profile || error || !profile.role) {
+      const { error: insertError } = await supabase.from('profiles').upsert({
+        id: user.uid,
+        email: user.email,
+        role: 'viewer'
+      });
+
+      if (insertError) throw new Error("❌ Failed to assign role.");
+    }
+  }
+
+  async function register() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+
+    try {
+      const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+      await userCred.user.sendEmailVerification();
+      await ensureUserProfile(userCred.user);
+      authMessage.textContent = "✅ Registered! Check your email to verify.";
+    } catch (e) {
+      authMessage.textContent = "❌ " + e.message;
+    }
+  }
+
+  async function login() {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+
+    try {
+      const userCred = await auth.signInWithEmailAndPassword(email, pass);
+      const user = userCred.user;
+
+      if (!user.emailVerified) {
+        authMessage.textContent = "⚠️ Please verify your email before continuing.";
+        return;
+      }
+
+      await ensureUserProfile(user);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.uid)
+        .single();
+
+      if (profile.role === 'admin') {
+        window.location.href = "dashboard.html";
+      } else {
+        window.location.href = "my-requests.html";
+      }
+
+    } catch (e) {
+      authMessage.textContent = "❌ " + e.message;
+    }
+  }
+
+  async function googleLogin() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+      const result = await auth.signInWithPopup(provider);
+      const user = result.user;
+      await ensureUserProfile(user);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.uid)
+        .single();
+
+      if (profile.role === 'admin') {
+        window.location.href = "dashboard.html";
+      } else {
+        window.location.href = "my-requests.html";
+      }
+
+    } catch (e) {
+      authMessage.textContent = "❌ " + e.message;
+    }
+  }
+
+  document.getElementById('registerBtn').addEventListener('click', register);
+  document.getElementById('loginBtn').addEventListener('click', login);
+  document.getElementById('googleBtn').addEventListener('click', googleLogin);
+</script>
+
+</body>
+</html>

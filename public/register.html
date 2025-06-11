@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Register - COL Ministries" />
+  <title>Register | COL Ministries</title>
+  <link rel="stylesheet" href="styles/tailwind.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+</head>
+<body class="bg-white dark:bg-gray-900 text-white">
+
+<header class="bg-gray-900 text-white shadow-md">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="index.html" class="text-xl font-bold">COL Ministries</a>
+    <nav class="space-x-4 hidden md:flex">
+      <a href="index.html" class="hover:text-orange-400">Home</a>
+      <a href="devotions.html" class="hover:text-orange-400">Devotions</a>
+      <a href="events.html" class="hover:text-orange-400">Events</a>
+      <a href="donate.html" class="hover:text-orange-400">Donate</a>
+      <a href="auth.html" class="hover:text-orange-400">Login</a>
+    </nav>
+    <button class="md:hidden text-white focus:outline-none" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')">☰</button>
+  </div>
+  <div id="mobileMenu" class="md:hidden px-4 pb-4 hidden">
+    <a href="index.html" class="block py-1">Home</a>
+    <a href="devotions.html" class="block py-1">Devotions</a>
+    <a href="events.html" class="block py-1">Events</a>
+    <a href="donate.html" class="block py-1">Donate</a>
+    <a href="auth.html" class="block py-1">Login</a>
+  </div>
+</header>
+
+<main class="p-6 max-w-md mx-auto">
+  <h1 class="text-3xl font-bold mb-6 text-center">Create an Account</h1>
+  <form id="register-form" class="space-y-4">
+    <div>
+      <label class="block text-sm mb-1">Full Name</label>
+      <input type="text" class="w-full px-4 py-2 rounded text-black" required />
+    </div>
+    <div>
+      <label class="block text-sm mb-1">Email Address</label>
+      <input type="email" class="w-full px-4 py-2 rounded text-black" required />
+    </div>
+    <div>
+      <label class="block text-sm mb-1">Password</label>
+      <input type="password" class="w-full px-4 py-2 rounded text-black" required />
+    </div>
+    <button type="submit" class="w-full bg-orange-600 text-white py-2 rounded hover:bg-orange-700">Register</button>
+  </form>
+
+  <p class="mt-6 text-sm text-gray-300 text-center">
+    Already have an account?
+    <a href="auth.html" class="text-orange-400 hover:underline">Log in here</a>
+  </p>
+</main>
+
+<footer class="bg-gray-800 text-white text-center py-6 mt-12">
+  <p class="text-sm">&copy; 2025 COL International Ministries. All rights reserved.</p>
+  <div class="mt-2 space-x-4">
+    <a href="https://facebook.com" class="hover:text-orange-400">Facebook</a>
+    <a href="https://instagram.com" class="hover:text-orange-400">Instagram</a>
+    <a href="mailto:info@colministries.org" class="hover:text-orange-400">Contact</a>
+  </div>
+</footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8bIenZ1Y6h_vmD2nODZ2SMsZ-roc_mGA", // Replace this
+    authDomain: "col-international-ministries.firebaseapp.com",
+    projectId: "col-international-ministries",
+    appId: "1:322590793116:web:04e0fb5b2563abd5537c59" // Replace this
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  document.getElementById("register-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const email = form.querySelector("input[type='email']").value;
+    const password = form.querySelector("input[type='password']").value;
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(userCredential.user);
+      alert("Verification email sent. Please check your inbox.");
+      form.reset();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+</script>
+
+</body>
+</html>
