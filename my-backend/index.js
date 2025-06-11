@@ -1,39 +1,70 @@
 import express from 'express';
-import { supabase } from './supabase.js';
+import dotenv from 'dotenv';
+import { supabase, verifyFirebaseToken } from './supabase.js';
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-// Example: Role-protected endpoint
-app.get('/user-role/:id', async (req, res) => {
-  const { id } = req.params;
+// Middleware to verify Firebase ID token
+async function authenticateFirebase(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid token' });
+  }
+
+  const idToken = authHeader.split(' ')[1];
+
+  try {
+    const user = await verifyFirebaseToken(idToken);
+    req.user = user; // attach verified user info to the request
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Unauthorized: ' + error.message });
+  }
+}
+
+// ✅ Secure route: fetch user role from Supabase
+app.get('/user-role', authenticateFirebase, async (req, res) => {
+  const { uid } = req.user;
+
   const { data, error } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', id)
+    .eq('id', uid)
     .single();
 
-  if (error) {
-    return res.status(500).json({ error: 'Failed to fetch role.' });
+  if (error || !data) {
+    return res.status(404).json({ error: 'Role not found.' });
   }
 
   res.json({ role: data.role });
 });
 
-// Example: Create new profile (if needed)
-app.post('/register-profile', async (req, res) => {
-  const { id, email } = req.body;
+// ✅ Secure route: create or update user profile with default role
+app.post('/register-profile', authenticateFirebase, async (req, res) => {
+  const { uid, email } = req.user;
+
   const { data, error } = await supabase
     .from('profiles')
-    .upsert({ id, email, role: 'viewer' });
+    .upsert({ id: uid, email, role: 'viewer' }, { onConflict: ['id'] });
 
   if (error) {
-    return res.status(500).json({ error: 'Failed to insert profile.' });
+    return res.status(500).json({ error: 'Failed to register profile.' });
   }
 
   res.json({ message: 'Profile registered.', data });
 });
 
-app.listen(3000, () => {
-  console.log('Backend running on http://localhost:3000');
+// ✅ Test secure route
+app.get('/secure', authenticateFirebase, (req, res) => {
+  res.json({ message: `Authenticated as ${req.user.email}` });
+});
+
+// ✅ Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ COL Ministries backend running at http://localhost:${PORT}`);
 });
