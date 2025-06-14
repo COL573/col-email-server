@@ -1,60 +1,116 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Public Page - COL Ministries" />
   <title>Public Page | COL Ministries</title>
   <link rel="stylesheet" href="styles/tailwind.css" />
-  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="icon" href="favicon.ico" />
+  <style>
+    body {
+      transition: font-size 0.3s ease;
+    }
+    .hero {
+      background-size: cover;
+      background-position: center;
+      height: 60vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .dark .hero {
+      background-image: url('assets/images/admin-hero-dark.jpg');
+    }
+    .light .hero {
+      background-image: url('assets/images/admin-hero-light.jpg');
+    }
+    .offline-banner {
+      display: none;
+      background-color: #f97316;
+      color: white;
+      text-align: center;
+      padding: 10px;
+      font-weight: bold;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 10000;
+    }
+    .offline-banner.show {
+      display: block;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB8bIenZ1Y6h_vmD2nODZ2SMsZ-roc_mGA",
+      authDomain: "col-international-ministries.firebaseapp.com",
+      projectId: "col-international-ministries"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
 </head>
 <body class="bg-white dark:bg-gray-900 text-white">
-<div id="notification-bar" style="background: #ffc107; padding: 10px; color: #000; text-align: center; font-weight: bold;">
-    You have new testimonies or prayer requests!
+
+<!-- Offline Banner -->
+<div id="offline-banner" class="offline-banner">
+  ⚠️ You are currently offline. Some features may not be available.
 </div>
-<script>
-    // Dummy example: this should be replaced with actual Firestore/Firebase fetch logic
-    document.addEventListener('DOMContentLoaded', function() {
-        const hasNewNotifications = true; // Replace with dynamic check
-        if (!hasNewNotifications) {
-            document.getElementById('notification-bar').style.display = 'none';
-        }
-    });
-</script>
 
+<!-- Notification Bar -->
+<div id="notification-bar" class="hidden bg-yellow-400 text-black p-3 text-center font-bold">
+  ✨ You have a new testimony or prayer request!
+</div>
 
-<header class="bg-gray-900 text-white shadow-md">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-xl font-bold">COL Ministries</a>
-    <nav class="space-x-4 hidden md:flex">
-      <a href="index.html" class="hover:text-orange-400">Home</a>
-      <a href="devotions.html" class="hover:text-orange-400">Devotions</a>
-      <a href="events.html" class="hover:text-orange-400">Events</a>
-      <a href="donate.html" class="hover:text-orange-400">Donate</a>
-      <a href="auth.html" class="hover:text-orange-400">Login</a>
-    </nav>
-    <button class="md:hidden text-white focus:outline-none" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')">☰</button>
+<!-- Header -->
+<header class="flex items-center justify-between px-6 py-4 bg-gray-900 text-white shadow-md">
+  <a href="index.html" class="text-xl font-bold">COL Ministries</a>
+
+  <!-- Dropdown -->
+  <div class="relative inline-block text-left">
+    <button id="menu-button" class="text-white px-3 py-1 border border-white rounded">☰ Menu</button>
+    <div id="dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border rounded shadow-lg z-50">
+      <a href="index.html" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">🏠 Home</a>
+      <a href="admin-dashboard.html" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">🛠️ Admin</a>
+      <a href="public.html" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">🌐 Public</a>
+      <button onclick="toggleTheme()" class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">🌓 Toggle Theme</button>
+      <div class="px-4 py-2">
+        <label class="text-sm">Font Size</label>
+        <input type="range" min="14" max="24" value="16" class="w-full" oninput="adjustFontSize(this.value)">
+      </div>
+    </div>
   </div>
-  <div id="mobileMenu" class="md:hidden px-4 pb-4 hidden">
-    <a href="index.html" class="block py-1">Home</a>
-    <a href="devotions.html" class="block py-1">Devotions</a>
-    <a href="events.html" class="block py-1">Events</a>
-    <a href="donate.html" class="block py-1">Donate</a>
-    <a href="auth.html" class="block py-1">Login</a>
-  </div>
+
+  <!-- Login/Logout -->
+  <button id="auth-btn" onclick="handleAuth()" class="text-sm bg-orange-500 hover:bg-orange-600 px-4 py-1 rounded">
+    Login
+  </button>
 </header>
 
-<main class="p-6 max-w-4xl mx-auto">
-  <h1 class="text-3xl font-bold mb-6">Public Resource Center</h1>
-  <p class="text-gray-300 mb-4">This page contains resources, links, and updates available to all visitors.</p>
+<!-- Hero Section -->
+<section class="hero text-white px-6">
+  <div>
+    <h1 class="text-4xl md:text-5xl font-bold mb-4">Welcome to COL Ministries</h1>
+    <p class="text-lg">Connecting Light to the World</p>
+  </div>
+</section>
 
+<!-- Main Content -->
+<main class="p-6 max-w-4xl mx-auto text-gray-800 dark:text-gray-200">
+  <h2 class="text-2xl font-bold mb-4">Public Resource Center</h2>
+  <p class="mb-6">Resources and updates available for all visitors:</p>
   <ul class="list-disc pl-5 space-y-2">
-    <li><a href="https://example.com/brochure.pdf" target="_blank" class="text-orange-400 hover:underline">Download Ministry Brochure</a></li>
-    <li><a href="https://example.com/calendar" target="_blank" class="text-orange-400 hover:underline">View Ministry Calendar</a></li>
-    <li><a href="https://example.com/volunteer" target="_blank" class="text-orange-400 hover:underline">Sign Up to Volunteer</a></li>
+    <li><a href="https://drive.google.com/uc?export=download&id=12W-pwhuEmkau3C38iMBqZC8p5eDpA3s1" target="_blank" class="text-orange-400 hover:underline">📄 Download Ministry Brochure (PDF)</a></li>
+    <li><a href="https://drive.google.com/uc?export=download&id=1qPE3qg3VsLKPcDW7sOIXQgSrjYVeg-67" target="_blank" class="text-orange-400 hover:underline">🖼️ Download Ministry Brochure (JPG)</a></li>
+    <li><a href="https://example.com/calendar" target="_blank" class="text-orange-400 hover:underline">📅 View Ministry Calendar</a></li>
+    <li><a href="https://example.com/volunteer" target="_blank" class="text-orange-400 hover:underline">🤝 Sign Up to Volunteer</a></li>
   </ul>
 </main>
 
+<!-- Footer -->
 <footer class="bg-gray-800 text-white text-center py-6 mt-12">
   <p class="text-sm">&copy; 2025 COL International Ministries. All rights reserved.</p>
   <div class="mt-2 space-x-4">
@@ -64,5 +120,104 @@
   </div>
 </footer>
 
+<script>
+  // Dropdown toggle and close on outside click
+  const menuBtn = document.getElementById('menu-button');
+  const dropdown = document.getElementById('dropdown');
+
+  function toggleDropdown() {
+    dropdown.classList.toggle('hidden');
+  }
+
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleDropdown();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  });
+
+  // Font Size Adjustment
+  function adjustFontSize(size) {
+    document.body.style.fontSize = size + "px";
+    localStorage.setItem('fontSize', size);
+  }
+
+  // Theme Toggle
+  function toggleTheme() {
+    const root = document.documentElement;
+    const isDark = root.classList.contains('dark');
+
+    if (isDark) {
+      root.classList.remove('dark');
+      root.classList.add('light');
+      localStorage.setItem('theme', 'light');
+    } else {
+      root.classList.remove('light');
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  }
+
+  // Authentication
+  function handleAuth() {
+    const user = firebase.auth().currentUser;
+    if (user) {
+      firebase.auth().signOut();
+    } else {
+      window.location.href = "auth.html";
+    }
+  }
+
+  firebase.auth().onAuthStateChanged(user => {
+    const btn = document.getElementById('auth-btn');
+    btn.textContent = user ? "Logout" : "Login";
+  });
+
+  // Load settings from localStorage
+  window.addEventListener('DOMContentLoaded', () => {
+    const root = document.documentElement;
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme) {
+      root.classList.add(savedTheme);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.classList.add(prefersDark ? 'dark' : 'light');
+    }
+
+    const savedFontSize = localStorage.getItem('fontSize');
+    if (savedFontSize) {
+      document.body.style.fontSize = savedFontSize + "px";
+    }
+
+    if (navigator.onLine) {
+      checkNewTestimonies();
+    }
+
+    async function checkNewTestimonies() {
+      try {
+        const response = await fetch('/api/testimony/unread');
+        const data = await response.json();
+        if (data.unread) {
+          document.getElementById('notification-bar').classList.remove('hidden');
+        }
+      } catch (e) {
+        console.warn('Could not fetch unread testimonies.', e);
+      }
+    }
+  });
+
+  // Offline Banner Behavior
+  window.addEventListener('offline', () => {
+    document.getElementById('offline-banner').classList.add('show');
+  });
+  window.addEventListener('online', () => {
+    document.getElementById('offline-banner').classList.remove('show');
+  });
+</script>
 </body>
 </html>

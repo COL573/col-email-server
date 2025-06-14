@@ -17,7 +17,7 @@
       <a href="index.html" class="hover:text-orange-400">Home</a>
       <a href="devotions.html" class="hover:text-orange-400">Devotions</a>
       <a href="events.html" class="hover:text-orange-400">Events</a>
-      <a href="testimonies.html" class="hover:text-orange-400">Testimonies</a>
+      <a href="testimony.html" class="hover:text-orange-400">Testimonies</a>
       <a href="donate.html" class="hover:text-orange-400">Donate</a>
       <a href="auth.html" class="hover:text-orange-400">Login</a>
     </nav>
@@ -29,7 +29,7 @@
     <a href="index.html" class="block py-1">Home</a>
     <a href="devotions.html" class="block py-1">Devotions</a>
     <a href="events.html" class="block py-1">Events</a>
-    <a href="testimonies.html" class="block py-1">Testimonies</a>
+    <a href="testimony.html" class="block py-1">Testimonies</a>
     <a href="donate.html" class="block py-1">Donate</a>
     <a href="auth.html" class="block py-1">Login</a>
   </div>
@@ -51,40 +51,49 @@
   </div>
 </footer>
 
-<!-- Firebase SDK and Script -->
+<!-- Supabase Script -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-  import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB8bIenZ1Y6h_vmD2nODZ2SMsZ-roc_mGA", // Replace this
-    authDomain: "col-international-ministries.firebaseapp.com",
-    projectId: "col-international-ministries",
-    appId: "1:322590793116:web:04e0fb5b2563abd5537c59" // Replace this
-  };
+  const supabase = createClient(
+    'https://vtzklavbxsmnaznuvuig.supabase.co',
+    'YOUR_PUBLIC_ANON_KEY' // Replace with your actual anon key
+  );
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  const container = document.getElementById("testimony-list");
 
   async function loadTestimonies() {
-    const testimonyList = document.getElementById("testimony-list");
-    const q = query(collection(db, "testimonies"), orderBy("date", "desc"));
-    const querySnapshot = await getDocs(q);
+    const { data, error } = await supabase
+      .from("testimonies")
+      .select("testimony, created_at")
+      .order("created_at", { ascending: false });
 
-    querySnapshot.forEach(doc => {
-      const data = doc.data();
+    if (error) {
+      console.error("Error loading testimonies:", error);
+      return;
+    }
+
+    container.innerHTML = "";
+    data.forEach((entry) => {
       const card = document.createElement("div");
+      const date = new Date(entry.created_at).toLocaleString();
       card.className = "bg-gray-800 p-6 rounded-lg shadow";
       card.innerHTML = `
-        <h2 class="text-xl font-bold mb-2">${data.name || 'Anonymous'}</h2>
-        <p class="text-sm text-gray-400 mb-1">${data.date}</p>
-        <p class="leading-relaxed">${data.message}</p>
+        <h2 class="text-xl font-bold mb-2">Anonymous</h2>
+        <p class="text-sm text-gray-400 mb-1">${date}</p>
+        <p class="leading-relaxed">${entry.testimony}</p>
       `;
-      testimonyList.appendChild(card);
+      container.appendChild(card);
     });
   }
 
   loadTestimonies();
+
+  // Real-time updates
+  supabase
+    .channel('public:testimonies')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonies' }, loadTestimonies)
+    .subscribe();
 </script>
 
 </body>
