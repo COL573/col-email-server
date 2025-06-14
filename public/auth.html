@@ -75,6 +75,8 @@
       'Content-Type': 'application/json'
     };
 
+    console.log("🧾 Sending token:", idToken.slice(0, 20) + '...');
+
     let res = await fetch(`${BASE_URL}/user-role`, { headers });
 
     if (res.status === 404) {
@@ -83,20 +85,26 @@
         headers
       });
 
+      const regJson = await regRes.json();
+      console.log("🔁 Profile register response:", regJson);
+
       if (!regRes.ok) {
-        authMessage.textContent = "❌ Profile creation failed.";
+        authMessage.textContent = "❌ " + (regJson?.error || "Profile creation failed.");
         return;
       }
 
       res = await fetch(`${BASE_URL}/user-role`, { headers });
     }
 
+    const json = await res.json();
+    console.log("🔁 Role fetch response:", json);
+
     if (!res.ok) {
-      authMessage.textContent = "❌ Still failed to fetch role.";
+      authMessage.textContent = "❌ " + (json?.error || "Failed to fetch role.");
       return;
     }
 
-    const { role } = await res.json();
+    const { role } = json;
     console.log("✅ Logged in with role:", role);
 
     if (role === 'admin') {
@@ -119,7 +127,7 @@
         return;
       }
 
-      const idToken = await user.getIdToken();
+      const idToken = await user.getIdToken(true);
       await loginAndFetchRole(idToken);
     } catch (e) {
       authMessage.textContent = "❌ " + e.message;
@@ -132,7 +140,7 @@
       const result = await auth.signInWithPopup(provider);
       const user = result.user;
 
-      const idToken = await user.getIdToken();
+      const idToken = await user.getIdToken(true);
       await loginAndFetchRole(idToken);
     } catch (e) {
       authMessage.textContent = "❌ " + e.message;
