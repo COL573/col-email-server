@@ -14,6 +14,7 @@
 <header class="bg-orange-500 text-white p-6 text-center">
   <h1 class="text-3xl font-bold">Welcome to COL Ministries</h1>
   <p class="text-lg">Login or create your account</p>
+  <div id="welcomeBanner" class="mt-2 text-sm"></div>
 </header>
 
 <main class="max-w-md mx-auto p-6 space-y-6">
@@ -27,6 +28,7 @@
     </div>
 
     <button id="googleBtn" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 mt-2">Sign in with Google</button>
+    <button id="logoutBtn" class="w-full bg-gray-600 text-white py-2 rounded hover:bg-gray-700 mt-2">Logout</button>
 
     <p id="authMessage" class="text-sm text-green-600 mt-2"></p>
   </div>
@@ -51,11 +53,31 @@
   const auth = firebase.auth();
 
   const supabaseClient = createClient(
-    "https://vtzklavbxsmnaznuvuig.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  );
+  'https://vtzklavbxsmnaznuvuig.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0emtsYXZieHNtbmF6bnV2dWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyODU2MDAsImV4cCI6MjA2NDg2MTYwMH0.wnlgH74QR9xWT2aOR6gQ6291saGWzqs_F3_FwfAT1uk' // ✅ safe for client-side
+);
+
 
   const authMessage = document.getElementById('authMessage');
+  const welcomeBanner = document.getElementById('welcomeBanner');
+
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      welcomeBanner.textContent = `👋 Welcome back, ${user.email}`;
+      const idToken = await user.getIdToken(true);
+      const headers = {
+        Authorization: `Bearer ${idToken}`,
+        'Content-Type': 'application/json'
+      };
+      const res = await fetch(`${BASE_URL}/user-role`, { headers });
+      const json = await res.json();
+      if (json?.role === 'admin') {
+        window.location.href = '/dashboard.html';
+      } else {
+        window.location.href = '/my-requests.html';
+      }
+    }
+  });
 
   async function register() {
     const email = document.getElementById('email').value;
@@ -75,8 +97,6 @@
       'Content-Type': 'application/json'
     };
 
-    console.log("🧾 Sending token:", idToken.slice(0, 20) + '...');
-
     let res = await fetch(`${BASE_URL}/user-role`, { headers });
 
     if (res.status === 404) {
@@ -86,8 +106,6 @@
       });
 
       const regJson = await regRes.json();
-      console.log("🔁 Profile register response:", regJson);
-
       if (!regRes.ok) {
         authMessage.textContent = "❌ " + (regJson?.error || "Profile creation failed.");
         return;
@@ -97,15 +115,12 @@
     }
 
     const json = await res.json();
-    console.log("🔁 Role fetch response:", json);
-
     if (!res.ok) {
       authMessage.textContent = "❌ " + (json?.error || "Failed to fetch role.");
       return;
     }
 
     const { role } = json;
-    console.log("✅ Logged in with role:", role);
 
     if (role === 'admin') {
       window.location.href = '/dashboard.html';
@@ -134,23 +149,28 @@
     }
   }
 
-  async function googleLogin() {
+  document.getElementById('registerBtn').addEventListener('click', register);
+  document.getElementById('loginBtn').addEventListener('click', login);
+
+  document.getElementById('googleBtn').addEventListener('click', async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     try {
-      const result = await auth.signInWithPopup(provider);
-      const user = result.user;
-
-      const idToken = await user.getIdToken(true);
-      await loginAndFetchRole(idToken);
+      const userCred = await auth.signInWithPopup(provider);
+      const user = userCred.user;
+      if (user) {
+        const idToken = await user.getIdToken(true);
+        await loginAndFetchRole(idToken);
+      }
     } catch (e) {
       authMessage.textContent = "❌ " + e.message;
     }
-  }
+  });
 
-  document.getElementById('registerBtn').addEventListener('click', register);
-  document.getElementById('loginBtn').addEventListener('click', login);
-  document.getElementById('googleBtn').addEventListener('click', googleLogin);
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await auth.signOut();
+    welcomeBanner.textContent = "";
+    authMessage.textContent = "";
+  });
 </script>
-
 </body>
 </html>

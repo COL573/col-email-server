@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard | COL Ministries</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="styles/tailwind.css" rel="stylesheet" />
+  <link rel="icon" href="favicon.ico" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-white min-h-screen flex flex-col">
+
+<header class="bg-gray-900 p-4 flex justify-between items-center">
+  <h1 class="text-xl font-bold">Admin Dashboard</h1>
+  <div class="space-x-2">
+    <button onclick="toggleTheme()" class="bg-orange-500 px-3 py-1 rounded">🌓 Toggle</button>
+    <button onclick="adjustFontSize('up')" class="bg-orange-500 px-3 py-1 rounded">A+</button>
+    <button onclick="adjustFontSize('down')" class="bg-orange-500 px-3 py-1 rounded">A-</button>
+    <button onclick="logout()" class="bg-red-600 px-3 py-1 rounded">Logout</button>
+  </div>
+</header>
+
+<main class="flex-grow p-6 max-w-6xl mx-auto space-y-10">
+  <section class="bg-gray-800 p-6 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">📨 Prayer Requests</h2>
+    <div id="prayers" class="space-y-4">Loading...</div>
+  </section>
+
+  <section class="bg-gray-800 p-6 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">🎉 Testimonies</h2>
+    <div id="testimonies" class="space-y-4">Loading...</div>
+  </section>
+
+  <section class="bg-gray-800 p-6 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">🎙️ Audio Requests</h2>
+    <div id="audios" class="space-y-4">Loading...</div>
+  </section>
+
+  <section class="bg-gray-800 p-6 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">📎 Submit Meeting Link</h2>
+    <form id="link-form" class="space-y-4">
+      <input type="url" id="meeting-link" placeholder="https://meet.google.com/..." required class="w-full p-2 text-black rounded" />
+      <button type="submit" class="bg-orange-500 px-4 py-2 rounded hover:bg-orange-600">Submit Link</button>
+    </form>
+    <div id="meeting-links" class="mt-4 text-sm text-orange-300"></div>
+  </section>
+</main>
+
+<footer class="bg-gray-800 text-white text-center py-4 text-sm">&copy; 2025 COL Ministries</footer>
+
+<script>
+  // CONFIG — replace with your Firebase API config
+  const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "col-international-ministries.firebaseapp.com",
+    projectId: "col-international-ministries"
+  };
+  const BASE_API = "https://col-email-server.onrender.com";
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  let token = null;
+
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) return location.href = "/auth.html";
+    token = await user.getIdToken();
+    const res = await fetch(`${BASE_API}/user-role`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const json = await res.json();
+    if (json.role !== "admin") location.href = "/";
+    loadAll();
+  });
+
+  async function loadAll() {
+    await Promise.all([
+      loadSection("prayer-requests", "prayers", "message"),
+      loadSection("testimonies", "testimonies", "testimony"),
+      loadAudio(),
+      loadLinks()
+    ]);
+  }
+
+  async function loadSection(endpoint, containerId, field) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "Loading...";
+    const res = await fetch(`${BASE_API}/api/${endpoint}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    container.innerHTML = "";
+    data.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "bg-gray-700 p-4 rounded";
+      div.innerHTML = `
+        <p class="text-xs text-gray-400">${new Date(item.created_at).toLocaleString()}</p>
+        <p>${item[field]}</p>
+        <p class="text-xs mt-1 text-yellow-400">Status: ${item.status || "pending"}</p>
+        <div class="space-x-2 mt-2">
+          <button onclick="approve('${endpoint}', '${item.id}')" class="bg-green-600 px-2 py-1 text-sm rounded">Approve</button>
+          <button onclick="remove('${endpoint}', '${item.id}')" class="bg-red-600 px-2 py-1 text-sm rounded">Delete</button>
+        </div>`;
+      container.appendChild(div);
+    });
+  }
+
+  async function approve(endpoint, id) {
+    await fetch(`${BASE_API}/api/${endpoint}/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ status: "approved" })
+    });
+    loadAll();
+  }
+
+  async function remove(endpoint, id) {
+    if (!confirm("Delete this entry?")) return;
+    await fetch(`${BASE_API}/api/${endpoint}/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    loadAll();
+  }
+
+  async function loadAudio() {
+    const container = document.getElementById("audios");
+    const res = await fetch(`${BASE_API}/api/audio-requests`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    container.innerHTML = "";
+    data.forEach(url => {
+      const block = document.createElement("div");
+      block.className = "bg-gray-700 p-4 rounded";
+      block.innerHTML = `
+        <audio controls src="${url}" class="w-full"></audio>
+        <a href="${url}" class="text-xs underline text-orange-300" target="_blank">Open in new tab</a>`;
+      container.appendChild(block);
+    });
+  }
+
+  async function loadLinks() {
+    const container = document.getElementById("meeting-links");
+    const res = await fetch(`${BASE_API}/api/meeting-links`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    container.innerHTML = data.map(l => `<div><a href="${l.url}" target="_blank" class="underline">${l.url}</a></div>`).join("");
+  }
+
+  document.getElementById("link-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const url = document.getElementById("meeting-link").value;
+    await fetch(`${BASE_API}/api/meeting-links`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ url })
+    });
+    document.getElementById("meeting-link").value = "";
+    loadLinks();
+  });
+
+  function toggleTheme() {
+    document.documentElement.classList.toggle("dark");
+  }
+
+  function adjustFontSize(dir) {
+    const root = document.body;
+    let size = parseFloat(getComputedStyle(root).fontSize);
+    root.style.fontSize = dir === 'up' ? `${size + 1}px` : `${size - 1}px`;
+  }
+
+  function logout() {
+    firebase.auth().signOut().then(() => location.href = "/auth.html");
+  }
+</script>
+
+</body>
+</html>
